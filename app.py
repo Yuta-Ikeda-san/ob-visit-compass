@@ -1,4 +1,6 @@
 import os
+import time
+from datetime import datetime, timezone, timedelta
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from huggingface_hub import InferenceClient
@@ -6,7 +8,6 @@ from huggingface_hub import InferenceClient
 app = Flask(__name__)
 
 # --- データベース設定 ---
-# DATABASE_URL が無ければローカルの SQLite を使用
 db_url = os.environ.get("DATABASE_URL", "sqlite:///app.db")
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
@@ -16,18 +17,24 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
-# Hugging Face APIクライアントの設定
+# Hugging Face APIトークン
 hf_token = os.environ.get("HF_API_TOKEN")
-client = InferenceClient("Qwen/Qwen2.5-72B-Instruct", token=hf_token)
+
+# 試行するモデルの優先順位リスト（メイン: 72B ➔ 失敗時: 7B ➔ 失敗時: Coder-32B）
+MODEL_LIST = [
+    "Qwen/Qwen2.5-72B-Instruct",
+    "Qwen/Qwen2.5-7B-Instruct",
+    "Qwen/Qwen2.5-Coder-32B-Instruct"
+]
 
 # --- データベースモデル ---
 class SessionLog(db.Model):
-    id = db.Column(db.Integer, primary_weight=True, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     industry = db.Column(db.String(100), nullable=True)
     job_type = db.Column(db.String(100), nullable=True)
     user_message = db.Column(db.Text, nullable=True)
     agent_response = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone(timedelta(hours=9))))
 
 # DBのテーブル作成
 with app.app_context():
@@ -45,27 +52,42 @@ def chat():
     if not user_msg:
         return jsonify({"reply": "メッセージを入力してください。"})
 
-    # AIへのシステム指示文
     system_prompt = (
         "あなたは就活生のOB訪問をサポートするプロのアシスタント「OB訪問コンパス」です。"
         "ユーザーから業界・職種や相談内容を受け取り、OB訪問で質問すべき具体的な質問リストとアドバイスを分かりやすく丁寧な日本語で生成してください。"
     )
 
-    try:
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_msg}
-        ]
-        
-        response = client.chat_completion(
-            messages=messages,
-            max_tokens=1000,
-            temperature=0.7
-        )
-        
-        bot_reply = response.choices[0].message.content
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_msg}
+    ]
 
-        # DBに相談ログを保存
+    bot_reply = None
+
+    # モデルを順番に試すリトライ処理
+    for model_name in MODEL_LIST:
+        try:
+            print(f"Trying model: {model_name}...")
+            client = InferenceClient(model_name, token=hf_token, timeout=25)
+            response = client.chat_completion(
+                messages=messages,
+                max_tokens=1000,
+                temperature=0.7
+            )
+            bot_reply = response.choices[0].message.content
+            if bot_reply:
+                print(f"Success with model: {model_name}")
+                break
+        except Exception as e:
+            print(f"Failed with {model_name}: {e}")
+            time.sleep(1) # 1秒置いて次のモデルを試す
+
+    # すべてのモデルで失敗した場合のフォールバック
+    if not bot_reply:
+        bot_reply = "現在AIサーバーが混雑しています。お手数ですが、もう一度送信ボタンを押してみてください。"
+
+    # DBに相談ログを保存
+    try:
         new_log = SessionLog(
             industry="就活相談",
             job_type="指定なし",
@@ -74,12 +96,10 @@ def chat():
         )
         db.session.add(new_log)
         db.session.commit()
-
-        return jsonify({"reply": bot_reply})
-
     except Exception as e:
-        print("Error:", e)
-        return jsonify({"reply": "申し訳ありません。エラーが発生しました。もう一度お試しください。"})
+        print("DB Save Error:", e)
+
+    return jsonify({"reply": bot_reply})
 
 @app.route("/history")
 def history():

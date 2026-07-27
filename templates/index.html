@@ -2,77 +2,157 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OB訪問コンパス</title>
     <style>
         * { box-sizing: border-box; }
         body {
             font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
-            background: linear-gradient(135deg, #eef2f7, #dce6f0);
+            background: linear-gradient(135deg, #eef7f0, #dcefe1);
             margin: 0;
             display: flex;
             justify-content: center;
+            align-items: center;
             min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
         }
+
+        /* 画面中央のメインアプリ容器 */
+        .app-container {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 24px;
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            z-index: 1;
+        }
+
+        /* 左右に配置するガイドパネル */
+        .side-panel {
+            flex: 1;
+            max-width: 280px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(47, 122, 92, 0.15);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            color: #2c4a3e;
+        }
+
+        .side-panel h2 {
+            font-size: 15px;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: #1c4d3a;
+            border-bottom: 2px solid #2f7a5c;
+            padding-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .side-panel ul {
+            margin: 0;
+            padding-left: 18px;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .side-panel li {
+            margin-bottom: 8px;
+        }
+
+        .tip-box {
+            background: #eef6f0;
+            border-left: 3px solid #2f7a5c;
+            padding: 10px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            margin-top: 12px;
+            line-height: 1.5;
+        }
+
+        /* メインアプリ本体 */
         .app {
             width: 100%;
-            max-width: 640px;
+            max-width: 520px;
+            height: 85vh;
+            max-height: 750px;
             background: #fff;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+            border-radius: 20px;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            overflow: hidden;
+            position: relative;
         }
+
         header {
-            background: linear-gradient(135deg, #2c5aa0, #1e3f73);
+            background: linear-gradient(135deg, #2f7a5c, #1c4d3a);
             color: white;
             padding: 18px 20px;
         }
         header h1 { margin: 0; font-size: 20px; }
-        header p { margin: 4px 0 0; font-size: 13px; opacity: 0.85; }
+        header p { margin: 4px 0 8px; font-size: 13px; opacity: 0.85; }
         header a {
-            color: #dbe8ff;
+            color: #d6f0e2;
             font-size: 13px;
             text-decoration: underline;
         }
+
         .chat-area {
             flex: 1;
-            padding: 20px;
+            padding: 24px 20px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 16px;
+            background: #fafcfb;
         }
+
         .bubble {
-            max-width: 80%;
-            padding: 12px 16px;
-            border-radius: 16px;
+            max-width: 75%;
+            padding: 12px 18px;
+            border-radius: 18px;
             line-height: 1.6;
             white-space: pre-wrap;
             font-size: 14px;
+            word-break: break-word;
         }
         .agent {
-            background: #eef1f6;
+            background: #eef6f0;
             color: #222;
             align-self: flex-start;
             border-bottom-left-radius: 4px;
+            margin-right: auto;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
         }
         .user {
-            background: #2c5aa0;
+            background: #2f7a5c;
             color: white;
             align-self: flex-end;
             border-bottom-right-radius: 4px;
+            margin-left: auto;
+            box-shadow: 0 2px 6px rgba(47,122,92,0.2);
         }
         .loading {
             align-self: flex-start;
             color: #888;
             font-size: 13px;
             font-style: italic;
+            padding-left: 4px;
         }
+
         form {
             display: flex;
             padding: 14px;
             border-top: 1px solid #eee;
             gap: 8px;
+            background: #fff;
         }
         textarea {
             flex: 1;
@@ -82,40 +162,98 @@
             border: 1px solid #ccc;
             font-size: 14px;
             font-family: inherit;
+            outline: none;
+            max-height: 100px;
+        }
+        textarea:focus {
+            border-color: #2f7a5c;
         }
         button {
-            background: #2c5aa0;
+            background: #2f7a5c;
             color: white;
             border: none;
             padding: 0 20px;
             border-radius: 10px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: bold;
+            transition: background 0.2s;
         }
-        button:hover { background: #1e3f73; }
+        button:hover { background: #1c4d3a; }
         button:disabled { background: #aaa; cursor: not-allowed; }
+
+        .bg-caption {
+            position: fixed;
+            bottom: 12px;
+            width: 100%;
+            text-align: center;
+            font-size: 13px;
+            color: rgba(47, 122, 92, 0.6);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* 画面が狭い端末（スマホなど）では左右パネルを自動非表示 */
+        @media (max-width: 960px) {
+            .side-panel {
+                display: none;
+            }
+            .app {
+                height: 92vh;
+                max-height: none;
+            }
+        }
     </style>
 </head>
 <body>
-<div class="app">
-    <header>
-        <h1>OB訪問コンパス</h1>
-        <p>業界・職種を教えてください。OB訪問で聞くべき質問をAgentが一緒に考えます。</p>
-        <a href="/history">📋 相談履歴を見る</a>
-    </header>
 
-    <div class="chat-area" id="chatArea">
-        <div class="bubble agent">
-            こんにちは！OB訪問の準備をお手伝いします。<br>
-            まずは興味のある業界や、今悩んでいることを教えてください。
+<div class="app-container">
+    <!-- 左側パネル: アプリの特長 -->
+    <div class="side-panel">
+        <h2>💡 コンパスの特長</h2>
+        <ul>
+            <li><strong>AIによる質問作成</strong><br>志望業界・職種に特化したリアルな質問を自動生成。</li>
+            <li><strong>自動履歴保存</strong><br>過去に作成した質問リストはデータベースに安全保存。</li>
+            <li><strong>即戦力マインド</strong><br>企業研究だけでは分からない現場の「生の声」を引き出します。</li>
+        </ul>
+        <div class="tip-box">
+            📌 <strong>Point:</strong><br>抽象的な質問よりも「具体的にどんな悩みを抱えているか」を入力すると精度が上がります！
         </div>
     </div>
 
-    <form id="chatForm">
-        <textarea id="messageInput" rows="1" placeholder="メッセージを入力..." required></textarea>
-        <button type="submit" id="sendBtn">送信</button>
-    </form>
+    <!-- 中央: メインチャットアプリ -->
+    <div class="app">
+        <header>
+            <h1>OB訪問コンパス</h1>
+            <p>業界・職種を教えてください。OB訪問で聞くべき質問をAgentが一緒に考えます。</p>
+            <a href="/history">📋 相談履歴を見る</a>
+        </header>
+
+        <div class="chat-area" id="chatArea">
+            <div class="bubble agent">こんにちは！OB訪問の準備をお手伝いします。<br>まずは興味のある業界や、今悩んでいることを教えてください。</div>
+        </div>
+
+        <form id="chatForm">
+            <textarea id="messageInput" rows="1" placeholder="メッセージを入力... (Enterで送信)" required></textarea>
+            <button type="submit" id="sendBtn">送信</button>
+        </form>
+    </div>
+
+    <!-- 右側パネル: おすすめプロンプト・使い方ガイド -->
+    <div class="side-panel">
+        <h2>🚀 おすすめの相談例</h2>
+        <ul>
+            <li>「IT業界のエンジニア職志望です。1日の業務スケジュールややりがいを聞く質問を作って」</li>
+            <li>「メーカーの営業職で、入社前後のギャップを聞くにはどう質問すれば良い？」</li>
+            <li>「コンサル業界の面接対策で刺さる逆質問を5つ提案して」</li>
+        </ul>
+        <div class="tip-box">
+            🔍 上の文章をコピーしてそのままチャットに入力してみてください！
+        </div>
+    </div>
 </div>
+
+<div class="bg-caption">就活生のためのOB訪問準備アシスタント</div>
 
 <script>
 const chatArea = document.getElementById("chatArea");
@@ -144,6 +282,14 @@ function removeLoading() {
     const el = document.getElementById("loadingIndicator");
     if (el) el.remove();
 }
+
+// Enterで送信 (Shift+Enterで改行)
+input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        form.dispatchEvent(new Event("submit"));
+    }
+});
 
 form.addEventListener("submit", async (e) => {
     e.preventDefault();

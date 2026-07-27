@@ -2,104 +2,422 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>相談履歴 - OB訪問コンパス</title>
     <style>
         * { box-sizing: border-box; }
         body {
             font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
-            background: linear-gradient(135deg, #eef2f7, #dce6f0);
+            background: linear-gradient(135deg, #eef7f0, #dcefe1);
             margin: 0;
             display: flex;
             justify-content: center;
+            align-items: flex-start;
             min-height: 100vh;
+            padding: 20px 0;
+            position: relative;
         }
-        .app {
+
+        .app-container {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 24px;
             width: 100%;
-            max-width: 700px;
-            background: #fff;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
-            min-height: 100vh;
+            max-width: 1200px;
+            padding: 0 20px;
+            z-index: 1;
         }
-        header {
-            background: linear-gradient(135deg, #2c5aa0, #1e3f73);
-            color: white;
-            padding: 18px 20px;
+
+        .side-panel {
+            flex: 1;
+            max-width: 280px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(47, 122, 92, 0.15);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            color: #2c4a3e;
+            position: sticky;
+            top: 20px;
         }
-        header h1 { margin: 0; font-size: 20px; }
-        header a {
-            color: #dbe8ff;
+
+        .side-panel h2 {
+            font-size: 15px;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: #1c4d3a;
+            border-bottom: 2px solid #2f7a5c;
+            padding-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-badge {
+            background: #eef6f0;
+            border: 1px solid #2f7a5c;
+            color: #2f7a5c;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .stat-badge .num {
+            font-size: 24px;
+            font-weight: bold;
+            display: block;
+        }
+
+        .side-panel ul {
+            margin: 0;
+            padding-left: 18px;
             font-size: 13px;
-            text-decoration: underline;
+            line-height: 1.7;
         }
-        .content { padding: 20px; }
-        .card {
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 16px;
-            background: #fafbfc;
-        }
-        .card .meta {
-            font-size: 12px;
-            color: #888;
+
+        .side-panel li {
             margin-bottom: 8px;
         }
+
+        .tip-box {
+            background: #eef6f0;
+            border-left: 3px solid #2f7a5c;
+            padding: 10px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            margin-top: 12px;
+            line-height: 1.5;
+        }
+
+        .delete-all-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 10px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .delete-all-btn:hover {
+            background: #c0392b;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 620px;
+            background: #fff;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+            border-radius: 20px;
+            overflow: hidden;
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2f7a5c, #1c4d3a);
+            color: white;
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        header a {
+            color: #d6f0e2;
+            font-size: 13px;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 6px 12px;
+            border-radius: 20px;
+            transition: background 0.2s;
+        }
+
+        header a:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .content {
+            padding: 24px;
+            flex: 1;
+            background: #fafcfb;
+        }
+
+        .card {
+            border: 1px solid #e2ece6;
+            border-radius: 14px;
+            margin-bottom: 16px;
+            background: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            cursor: pointer;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            user-select: none;
+            position: relative;
+        }
+
+        .card-header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card .meta {
+            font-size: 12px;
+            color: #77998b;
+            font-weight: 500;
+        }
+
+        /* 個別削除ボタン */
+        .btn-delete-item {
+            background: transparent;
+            border: none;
+            color: #e74c3c;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .btn-delete-item:hover {
+            background: #fadbd8;
+        }
+
+        .card-toggle-text {
+            font-size: 12px;
+            color: #2f7a5c;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        .card.open .card-toggle-text {
+            color: #888;
+        }
+
+        .card .tags-container {
+            margin-top: 2px;
+        }
+
         .card .tags {
             display: inline-block;
-            background: #eef1f6;
-            color: #2c5aa0;
+            background: #eef6f0;
+            color: #2f7a5c;
             padding: 3px 10px;
             border-radius: 20px;
             font-size: 12px;
+            font-weight: bold;
             margin-right: 6px;
-            margin-bottom: 10px;
         }
+
         .card .user-msg {
             font-size: 14px;
-            color: #444;
-            margin-bottom: 10px;
-            padding-left: 10px;
-            border-left: 3px solid #2c5aa0;
+            color: #2c4a3e;
+            margin-top: 6px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
+
+        .card-body {
+            display: none;
+            padding: 0 20px 20px 20px;
+            border-top: 1px dashed #e2ece6;
+            background: #fafcfb;
+        }
+
+        .card.open .card-body {
+            display: block;
+        }
+
         .card pre {
             white-space: pre-wrap;
             font-size: 14px;
             line-height: 1.7;
-            background: white;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #eee;
-            margin: 0;
+            background: #ffffff;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid #eaeaea;
+            margin-top: 14px;
+            color: #333;
+            font-family: inherit;
         }
+
         .empty {
             text-align: center;
-            color: #999;
-            padding: 40px 0;
+            color: #88a89b;
+            padding: 60px 0;
+            font-size: 15px;
+        }
+
+        .scroll-buttons {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .scroll-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #2f7a5c;
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .scroll-btn:hover {
+            background: #1c4d3a;
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 960px) {
+            .side-panel {
+                display: none;
+            }
+            .app {
+                max-width: 100%;
+            }
+            .scroll-buttons {
+                bottom: 20px;
+                right: 20px;
+            }
         }
     </style>
 </head>
 <body>
-<div class="app">
-    <header>
-        <h1>相談履歴</h1>
-        <a href="/">← トップに戻る</a>
-    </header>
 
-    <div class="content">
-        {% for record in records %}
-        <div class="card">
-            <div class="meta">{{ record.created_at.strftime('%Y年%m月%d日 %H:%M') }}</div>
-            <span class="tags">{{ record.industry }}</span>
-            <span class="tags">{{ record.job_type }}</span>
-            {% if record.user_message %}
-            <div class="user-msg">相談内容: {{ record.user_message }}</div>
-            {% endif %}
-            <pre>{{ record.agent_response }}</pre>
+<div class="app-container">
+    <!-- 左側パネル -->
+    <div class="side-panel">
+        <h2>📊 相談ステータス</h2>
+        <div class="stat-badge">
+            保存済みの相談
+            <span class="num">{{ records|length }} 件</span>
         </div>
-        {% else %}
-        <div class="empty">まだ相談履歴がありません。</div>
-        {% endfor %}
+        <div class="tip-box">
+            💡 不要になった履歴は個別に削除が可能です。
+        </div>
+
+        {% if records %}
+        <form action="/delete_all" method="POST" onsubmit="return confirm('本当にすべての相談履歴を削除しますか？\n（この操作は取り消せません）');">
+            <button type="submit" class="delete-all-btn">🗑 全ての履歴を削除</button>
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- 中央: 相談履歴メインリスト -->
+    <div class="app">
+        <header>
+            <h1>相談履歴</h1>
+            <a href="/">← トップに戻る</a>
+        </header>
+
+        <div class="content">
+            {% for record in records %}
+            <div class="card {% if loop.first %}open{% endif %}">
+                <div class="card-header" onclick="toggleCard(event, this.parentElement)">
+                    <div class="card-header-top">
+                        <div class="meta">📅 {{ record.created_at.strftime('%Y年%m月%d日 %H:%M') }}</div>
+                        <!-- 1件削除ボタン -->
+                        <form action="/delete/{{ record.id }}" method="POST" style="margin: 0;" onsubmit="return confirm('この履歴を削除しますか？');">
+                            <button type="submit" class="btn-delete-item">🗑 削除</button>
+                        </form>
+                    </div>
+
+                    <div class="tags-container">
+                        {% if record.industry %}<span class="tags">🏢 {{ record.industry }}</span>{% endif %}
+                        {% if record.job_type %}<span class="tags">💼 {{ record.job_type }}</span>{% endif %}
+                    </div>
+                    {% if record.user_message %}
+                    <div class="user-msg">🗣 {{ record.user_message }}</div>
+                    {% endif %}
+
+                    <div class="card-toggle-text">
+                        ▼ 回答を開く/閉じる
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <pre>{{ record.agent_response }}</pre>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty">
+                📄 まだ相談履歴がありません。<br>トップ画面から質問を作成してみましょう！
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 右側パネル -->
+    <div class="side-panel">
+        <h2>📝 履歴の活用方法</h2>
+        <ul>
+            <li><strong>OB訪問前の直前復習</strong><br>面談の10分前に質問リストを見返して準備しましょう。</li>
+            <li><strong>不要データの整理</strong><br>使い終わった質問リストを削除して画面をスッキリ保ちましょう。</li>
+        </ul>
     </div>
 </div>
+
+<div class="scroll-buttons">
+    <button class="scroll-btn" onclick="scrollToTop()" title="一番上へ">▲</button>
+    <button class="scroll-btn" onclick="scrollToBottom()" title="一番下へ">▼</button>
+</div>
+
+<script>
+function toggleCard(event, cardElement) {
+    // 削除ボタンが押された時はアコーディオンの開閉を行わない
+    if (event.target.tagName === 'BUTTON' || event.target.closest('button')) {
+        return;
+    }
+    cardElement.classList.toggle('open');
+}
+
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function scrollToBottom() {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+</script>
+
 </body>
 </html>

@@ -20,11 +20,12 @@ db = SQLAlchemy(app)
 # Hugging Face APIトークン
 hf_token = os.environ.get("HF_API_TOKEN")
 
-# 試行するモデルの優先順位リスト（メイン: 72B ➔ 失敗時: 7B ➔ 失敗時: Coder-32B）
+# ★ 最も安定・高速に動作するモデルのリストに刷新 ★
 MODEL_LIST = [
-    "Qwen/Qwen2.5-72B-Instruct",
+    "meta-llama/Llama-3.2-3B-Instruct",
+    "mistralai/Mistral-7B-Instruct-v0.3",
     "Qwen/Qwen2.5-7B-Instruct",
-    "Qwen/Qwen2.5-Coder-32B-Instruct"
+    "Qwen/Qwen2.5-72B-Instruct"
 ]
 
 # --- データベースモデル ---
@@ -68,10 +69,10 @@ def chat():
     for model_name in MODEL_LIST:
         try:
             print(f"Trying model: {model_name}...")
-            client = InferenceClient(model_name, token=hf_token, timeout=25)
+            client = InferenceClient(model_name, token=hf_token, timeout=15)
             response = client.chat_completion(
                 messages=messages,
-                max_tokens=1000,
+                max_tokens=800,
                 temperature=0.7
             )
             bot_reply = response.choices[0].message.content
@@ -80,11 +81,11 @@ def chat():
                 break
         except Exception as e:
             print(f"Failed with {model_name}: {e}")
-            time.sleep(1) # 1秒置いて次のモデルを試す
+            time.sleep(0.5)
 
     # すべてのモデルで失敗した場合のフォールバック
     if not bot_reply:
-        bot_reply = "現在AIサーバーが混雑しています。お手数ですが、もう一度送信ボタンを押してみてください。"
+        bot_reply = "申し訳ありません。AIサーバーが一時的に混雑しています。もう一度送信してみてください。"
 
     # DBに相談ログを保存
     try:

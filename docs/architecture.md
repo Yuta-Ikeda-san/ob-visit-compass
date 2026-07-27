@@ -10,13 +10,13 @@
 
 graph TD
 
-&#x20;   A\[ユーザー<br>ブラウザ] -->|HTTPS| B\[Web層<br>Render Web Service]
+&#x20;   A\[ユーザー ブラウザ] -->|HTTPS| B\[Web層 Render Web Service]
 
-&#x20;   B -->|Flask アプリケーション| C\[Application層<br>Agentロジック]
+&#x20;   B -->|Flask アプリケーション| C\[Application層 Agentロジック]
 
-&#x20;   C -->|SQL| D\[(DB層<br>PostgreSQL)]
+&#x20;   C -->|SQL| D\[DB層 PostgreSQL]
 
-&#x20;   C -->|API呼び出し| E\[Hugging Face<br>Inference API]
+&#x20;   C -->|API呼び出し| E\[Hugging Face Inference API]
 
 ```
 

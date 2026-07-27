@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
@@ -8,25 +8,13 @@ from huggingface_hub import InferenceClient
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-me")
+
 client = InferenceClient(token=os.getenv("HF_API_TOKEN"))
+MODEL_NAME = "deepseek-ai/DeepSeek-R1"
 
-# Hugging Face 無料インファレンスAPIで安定して動作する高性能モデル
-MODEL_NAME = "Qwen/Qwen2.5-72B-Instruct"
-
-# PostgreSQL接続URIの調整（DATABASE_URLが空の場合はローカルのSQLiteを使用するようフォールバックを設定）
-db_url = os.getenv("DATABASE_URL", "sqlite:///app.db")
-if db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql://", 1)
-
-app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-# Render等のクラウドDBタイムアウト（OperationalError）対策
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_pre_ping": True,  # DB操作前に接続状態を確認し、切断されていれば自動で再接続
-    "pool_recycle": 300,    # 5分（300秒）ごとに接続を張り直す
-}
-
 db = SQLAlchemy(app)
 
 
@@ -40,74 +28,136 @@ class ConsultSession(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
-def ask_agent(industry, job_type, user_message):
-    if not industry or not job_type:
-        prompt = f"""あなたは就活生のOB訪問を支援するAgentです。
-ユーザーの発言: {user_message}
-まだ業界か職種の情報が不足しています。
-不足している情報を1つだけ、丁寧に聞き返してください。"""
-    else:
-        extra_context = f"\n学生の相談内容: {user_message}" if user_message else ""
-        prompt = f"""あなたは就活生のOB訪問を支援するAgentです。
+def clean_response(content):
+    if "<think>" in content and "</think>" in content:
+        content = content.split("</think>")[-1].strip()
+    return content
+
+
+def call_llm(prompt):
+    response = client.chat_completion(
+        messages=[{"role": "user", "content": prompt}],
+        model=MODEL_NAME,
+        max_tokens=1500
+    )
+    return clean_response(response.choices[0].message.content)
+
+
+def generate_question_list(industry, job_type, user_message):
+    extra_context = f"\n学生の相談内容: {user_message}" if user_message else ""
+    prompt = f"""あなたは就活生のOB訪問を支援するAgentです。
 業界: {industry}
 職種: {job_type}{extra_context}
 
 上記の情報を踏まえて、この業界・職種のOB訪問で聞くべき質問を5つ、
 学生が実際に使える形で日本語で提案してください。
 学生の相談内容がある場合は、その内容を反映した質問にしてください。
-番号付きリストで出力してください。"""
+番号付きリストで出力してください。
 
-    response = client.chat_completion(
-        messages=[{"role": "user", "content": prompt}],
-        model=MODEL_NAME,
-        max_tokens=1500
-    )
+重要な出力ルール:
+- ユーザーにそのまま送る返答のみを出力してください
+- 質問リストの前後に解説や補足説明を追加しないでください"""
+    return call_llm(prompt)
 
-    content = response.choices[0].message.content
-    return content
+def ask_for_missing_info(state, user_message):
+    prompt = f"""あなたは就活生のOB訪問を支援するAgentです。
+これまでの会話で分かっている情報:
+業界: {state.get('industry') or '不明'}
+職種: {state.get('job_type') or '不明'}
+ユーザーの最新の発言: {user_message}
 
+まだ業界か職種の情報が不足しています。
+不足している情報を1つだけ、丁寧に聞き返してください。
+すでに分かっている情報は聞き直さないでください。
 
-# データベースのテーブルを作成
-with app.app_context():
-    db.create_all()
+重要な出力ルール:
+- ユーザーにそのまま送る返答の文章だけを出力してください
+- 解説、理由、分析、箇条書きのまとめなどは一切含めないでください
+- Markdown記法（**や見出しなど）は使わないでください
+- 出力は2〜3文程度の短い日本語の会話文のみにしてください"""
+    return call_llm(prompt)
 
+def extract_info(state, user_message):
+    """ユーザーの発言から業界・職種らしき情報を抽出してstateに反映する（簡易版）"""
+    prompt = f"""以下のユーザー発言から、就活の「業界」と「職種」を抽出してください。
+分からない項目は空文字にしてください。
+必ず以下のJSON形式のみで出力してください（説明文は不要です）:
+{{"industry": "...", "job_type": "..."}}
 
-# メインページ（フォーム送信・回答表示）
-@app.route("/", methods=["GET", "POST"])
-def index():
-    agent_response = ""
-    if request.method == "POST":
-        industry = request.form.get("industry")
-        job_type = request.form.get("job_type")
-        user_message = request.form.get("user_message")
+現在分かっている情報:
+業界: {state.get('industry') or ''}
+職種: {state.get('job_type') or ''}
 
-        # 1. LLMからの回答を取得
-        agent_response = ask_agent(industry, job_type, user_message)
-
-        # 2. 回答取得後にDBへ保存
+ユーザーの発言: {user_message}
+"""
+    result = call_llm(prompt)
+    import json
+    import re
+    match = re.search(r'\{.*\}', result, re.DOTALL)
+    if match:
         try:
-            session_record = ConsultSession(
-                industry=industry,
-                job_type=job_type,
-                user_message=user_message,
-                agent_response=agent_response
-            )
-            db.session.add(session_record)
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            print(f"DB Save Error: {e}")
-
-    return render_template("index.html", result=agent_response)
+            data = json.loads(match.group())
+            if data.get("industry"):
+                state["industry"] = data["industry"]
+            if data.get("job_type"):
+                state["job_type"] = data["job_type"]
+        except json.JSONDecodeError:
+            pass
+    return state
 
 
-# 履歴表示ページ
+@app.route("/")
+def index():
+    session.clear()
+    session["chat_log"] = []
+    session["state"] = {"industry": "", "job_type": ""}
+    return render_template("index.html")
+
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    user_message = request.form.get("message", "").strip()
+    if "chat_log" not in session:
+        session["chat_log"] = []
+        session["state"] = {"industry": "", "job_type": ""}
+
+    chat_log = session["chat_log"]
+    state = session["state"]
+
+    chat_log.append({"role": "user", "content": user_message})
+
+    state = extract_info(state, user_message)
+
+    if not state.get("industry") or not state.get("job_type"):
+        agent_reply = ask_for_missing_info(state, user_message)
+    else:
+        agent_reply = generate_question_list(state["industry"], state["job_type"], user_message)
+
+        record = ConsultSession(
+            industry=state["industry"],
+            job_type=state["job_type"],
+            user_message=user_message,
+            agent_response=agent_reply
+        )
+        db.session.add(record)
+        db.session.commit()
+
+    chat_log.append({"role": "agent", "content": agent_reply})
+
+    session["chat_log"] = chat_log
+    session["state"] = state
+    session.modified = True
+
+    return jsonify({"reply": agent_reply, "chat_log": chat_log})
+
+
 @app.route("/history")
 def history():
-    sessions = ConsultSession.query.order_by(ConsultSession.created_at.desc()).all()
-    # history.html 側の {% for record in records %} に合わせて records= で渡す
-    return render_template("history.html", records=sessions)
+    records = ConsultSession.query.order_by(ConsultSession.created_at.desc()).all()
+    return render_template("history.html", records=records)
 
 
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)

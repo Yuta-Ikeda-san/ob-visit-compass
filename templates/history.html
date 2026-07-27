@@ -3,21 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <title>相談履歴 - OB訪問コンパス</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+            background: linear-gradient(135deg, #eef2f7, #dce6f0);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .app {
+            width: 100%;
+            max-width: 700px;
+            background: #fff;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            min-height: 100vh;
+        }
+        header {
+            background: linear-gradient(135deg, #2c5aa0, #1e3f73);
+            color: white;
+            padding: 18px 20px;
+        }
+        header h1 { margin: 0; font-size: 20px; }
+        header a {
+            color: #dbe8ff;
+            font-size: 13px;
+            text-decoration: underline;
+        }
+        .content { padding: 20px; }
+        .card {
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            background: #fafbfc;
+        }
+        .card .meta {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .card .tags {
+            display: inline-block;
+            background: #eef1f6;
+            color: #2c5aa0;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-right: 6px;
+            margin-bottom: 10px;
+        }
+        .card .user-msg {
+            font-size: 14px;
+            color: #444;
+            margin-bottom: 10px;
+            padding-left: 10px;
+            border-left: 3px solid #2c5aa0;
+        }
+        .card pre {
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.7;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            margin: 0;
+        }
+        .empty {
+            text-align: center;
+            color: #999;
+            padding: 40px 0;
+        }
+    </style>
 </head>
-<body style="font-family: sans-serif; max-width: 700px; margin: 40px auto;">
-    <h1>相談履歴</h1>
-    <p><a href="/">トップに戻る</a></p>
+<body>
+<div class="app">
+    <header>
+        <h1>相談履歴</h1>
+        <a href="/">← トップに戻る</a>
+    </header>
 
-    {% for record in records %}
-    <div style="border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 8px;">
-        <p><strong>日時:</strong> {{ record.created_at }}</p>
-        <p><strong>業界:</strong> {{ record.industry }} / <strong>職種:</strong> {{ record.job_type }}</p>
-        <p><strong>相談内容:</strong> {{ record.user_message }}</p>
-        <p><strong>Agentの回答:</strong></p>
-        <pre style="white-space: pre-wrap;">{{ record.agent_response }}</pre>
+    <div class="content">
+        {% for record in records %}
+        <div class="card">
+            <div class="meta">{{ record.created_at.strftime('%Y年%m月%d日 %H:%M') }}</div>
+            <span class="tags">{{ record.industry }}</span>
+            <span class="tags">{{ record.job_type }}</span>
+            {% if record.user_message %}
+            <div class="user-msg">相談内容: {{ record.user_message }}</div>
+            {% endif %}
+            <pre>{{ record.agent_response }}</pre>
+        </div>
+        {% else %}
+        <div class="empty">まだ相談履歴がありません。</div>
+        {% endfor %}
     </div>
-    {% else %}
-    <p>まだ相談履歴がありません。</p>
-    {% endfor %}
+</div>
 </body>
 </html>

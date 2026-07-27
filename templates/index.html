@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>OB訪問コンパス</title>
+</head>
+<body style="font-family: sans-serif; max-width: 600px; margin: 40px auto;">
+    <h1>OB訪問コンパス</h1>
+    <form method="POST">
+        <label>業界（例：総合商社）</label><br>
+        <input type="text" name="industry" style="width: 100%;"><br><br>
+
+        <label>職種（例：営業）</label><br>
+        <input type="text" name="job_type" style="width: 100%;"><br><br>
+
+        <label>相談したいこと</label><br>
+        <textarea name="user_message" rows="4" style="width: 100%;"></textarea><br><br>
+
+        <button type="submit">質問リストを作成</button>
+    </form>
+
+    {% if result %}
+    <hr>
+    <h2>Agentからの回答</h2>
+    <pre style="white-space: pre-wrap;">{{ result }}</pre>
+    {% endif %}
+</body>
+</html>

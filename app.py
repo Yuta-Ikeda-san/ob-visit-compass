@@ -1,4 +1,6 @@
 import os
+import json
+import re
 from datetime import datetime
 from flask import Flask, render_template, request, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -11,7 +13,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-me")
 
 client = InferenceClient(token=os.getenv("HF_API_TOKEN"))
-MODEL_NAME = "deepseek-ai/DeepSeek-R1"
+MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -59,6 +61,7 @@ def generate_question_list(industry, job_type, user_message):
 - 質問リストの前後に解説や補足説明を追加しないでください"""
     return call_llm(prompt)
 
+
 def ask_for_missing_info(state, user_message):
     prompt = f"""あなたは就活生のOB訪問を支援するAgentです。
 これまでの会話で分かっている情報:
@@ -77,22 +80,26 @@ def ask_for_missing_info(state, user_message):
 - 出力は2〜3文程度の短い日本語の会話文のみにしてください"""
     return call_llm(prompt)
 
+
 def extract_info(state, user_message):
-    """ユーザーの発言から業界・職種らしき情報を抽出してstateに反映する（簡易版）"""
-    prompt = f"""以下のユーザー発言から、就活の「業界」と「職種」を抽出してください。
-分からない項目は空文字にしてください。
-必ず以下のJSON形式のみで出力してください（説明文は不要です）:
-{{"industry": "...", "job_type": "..."}}
+    """ユーザーの発言から業界・職種らしき情報を抽出してstateに反映する"""
+    prompt = f"""あなたは就活生の発言から情報を抽出するアシスタントです。
 
 現在分かっている情報:
-業界: {state.get('industry') or ''}
-職種: {state.get('job_type') or ''}
+業界: {state.get('industry') or '(まだ不明)'}
+職種: {state.get('job_type') or '(まだ不明)'}
 
-ユーザーの発言: {user_message}
-"""
+ユーザーの最新の発言: 「{user_message}」
+
+上記のユーザー発言と、これまでの情報を組み合わせて、
+最新の「業界」と「職種」を判定してください。
+発言に新しい情報がなければ、既存の情報をそのまま使ってください。
+分からない項目は空文字("")にしてください。
+
+出力は必ず以下のJSON形式のみにしてください。前置きや説明文は一切書かないでください:
+{{"industry": "業界名", "job_type": "職種名"}}"""
+
     result = call_llm(prompt)
-    import json
-    import re
     match = re.search(r'\{.*\}', result, re.DOTALL)
     if match:
         try:

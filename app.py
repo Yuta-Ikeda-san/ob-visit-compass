@@ -1,7 +1,7 @@
 import os
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, request, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
@@ -19,6 +19,11 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
+JST = timezone(timedelta(hours=9))
+
+
+def now_jst():
+    return datetime.now(JST).replace(tzinfo=None)
 
 class ConsultSession(db.Model):
     __tablename__ = "consult_sessions"
@@ -27,7 +32,7 @@ class ConsultSession(db.Model):
     job_type = db.Column(db.String(100))
     user_message = db.Column(db.Text)
     agent_response = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=now_jst)
 
 
 def clean_response(content):
@@ -58,7 +63,8 @@ def generate_question_list(industry, job_type, user_message):
 
 重要な出力ルール:
 - ユーザーにそのまま送る返答のみを出力してください
-- 質問リストの前後に解説や補足説明を追加しないでください"""
+- 質問リストの前後に解説や補足説明を追加しないでください
+- 必ず日本語のみで出力してください"""
     return call_llm(prompt)
 
 
@@ -77,7 +83,8 @@ def ask_for_missing_info(state, user_message):
 - ユーザーにそのまま送る返答の文章だけを出力してください
 - 解説、理由、分析、箇条書きのまとめなどは一切含めないでください
 - Markdown記法（**や見出しなど）は使わないでください
-- 出力は2〜3文程度の短い日本語の会話文のみにしてください"""
+- 出力は2〜3文程度の短い日本語の会話文のみにしてください
+- 必ず日本語のみで出力してください"""
     return call_llm(prompt)
 
 
@@ -95,6 +102,7 @@ def extract_info(state, user_message):
 最新の「業界」と「職種」を判定してください。
 発言に新しい情報がなければ、既存の情報をそのまま使ってください。
 分からない項目は空文字("")にしてください。
+業界名・職種名は必ず日本語で出力してください。
 
 出力は必ず以下のJSON形式のみにしてください。前置きや説明文は一切書かないでください:
 {{"industry": "業界名", "job_type": "職種名"}}"""

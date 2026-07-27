@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>相談履歴 - OB訪問コンパス</title>
+</head>
+<body style="font-family: sans-serif; max-width: 700px; margin: 40px auto;">
+    <h1>相談履歴</h1>
+    <p><a href="/">トップに戻る</a></p>
+
+    {% for record in records %}
+    <div style="border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 8px;">
+        <p><strong>日時:</strong> {{ record.created_at }}</p>
+        <p><strong>業界:</strong> {{ record.industry }} / <strong>職種:</strong> {{ record.job_type }}</p>
+        <p><strong>相談内容:</strong> {{ record.user_message }}</p>
+        <p><strong>Agentの回答:</strong></p>
+        <pre style="white-space: pre-wrap;">{{ record.agent_response }}</pre>
+    </div>
+    {% else %}
+    <p>まだ相談履歴がありません。</p>
+    {% endfor %}
+</body>
+</html>

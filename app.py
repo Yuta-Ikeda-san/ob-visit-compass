@@ -26,11 +26,8 @@ hf_token = os.environ.get("HF_API_TOKEN")
 # 安定・高速に動作するモデルのフォールバックリスト
 MODEL_LIST = [
     "Qwen/Qwen2.5-7B-Instruct",
-    "meta-llama/Llama-3.2-3B-Instruct",
-    "mistralai/Mistral-7B-Instruct-v0.3",
     "Qwen/Qwen2.5-72B-Instruct",
 ]
-
 JST = timezone(timedelta(hours=9))
 
 

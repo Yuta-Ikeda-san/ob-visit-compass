@@ -28,7 +28,7 @@ https://ob-visit-compass.onrender.com
 - Flask（Webフレームワーク）
 - Flask-SQLAlchemy（ORM）
 - PostgreSQL（Render上に構築）/ SQLite（ローカル開発用）
-- Hugging Face Inference API（Qwen2.5-72B-Instruct）
+- Hugging Face Inference API（複数モデルのフォールバック方式：Qwen2.5-7B-Instruct, Llama-3.2-3B-Instruct, Mistral-7B-Instruct-v0.3, Qwen2.5-72B-Instructの順に試行し、安定性を確保）
 - Render（デプロイ・ホスティング）
 - Gunicorn（本番用WSGIサーバー）
 

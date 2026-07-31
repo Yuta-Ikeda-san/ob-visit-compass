@@ -41,6 +41,16 @@
             padding: 20px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
             color: #2c4a3e;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .side-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+        .side-panel::-webkit-scrollbar-thumb {
+            background-color: rgba(47, 122, 92, 0.3);
+            border-radius: 10px;
         }
 
         .side-panel h2 {
@@ -74,7 +84,107 @@
             border-radius: 4px;
             margin-top: 12px;
             line-height: 1.5;
+            margin-bottom: 20px;
         }
+
+        /* --- 業界図鑑スタイル --- */
+        .guide-section {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #eaeaea;
+        }
+        
+        .guide-section h3 {
+            font-size: 14px;
+            color: #1c4d3a;
+            margin-top: 0;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .guide-desc {
+            font-size: 12px;
+            color: #666;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .industry-item {
+            margin-bottom: 8px;
+            border: 1px solid #dcdcdc;
+            border-radius: 6px;
+            background: #fff;
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+        
+        .industry-item:hover {
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .industry-item summary {
+            padding: 10px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            list-style: none;
+            position: relative;
+            background: #fafcfb;
+            color: #2c4a3e;
+            user-select: none;
+        }
+        
+        .industry-item summary::-webkit-details-marker {
+            display: none;
+        }
+        
+        .industry-item summary::after {
+            content: '▼';
+            position: absolute;
+            right: 12px;
+            font-size: 10px;
+            color: #88a89b;
+            transition: transform 0.2s;
+        }
+        
+        .industry-item[open] summary::after {
+            transform: rotate(180deg);
+        }
+
+        .industry-content {
+            padding: 12px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #444;
+            line-height: 1.6;
+        }
+        
+        .industry-content p {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .select-btn {
+            padding: 6px 12px;
+            background-color: #2f7a5c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            width: 100%;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        .select-btn:hover {
+            background-color: #1c4d3a;
+        }
+        /* ------------------------ */
 
         /* メインアプリ本体 */
         .app {
@@ -208,7 +318,7 @@
 <body>
 
 <div class="app-container">
-    <!-- 左側パネル: アプリの特長 -->
+    <!-- 左側パネル: アプリの特長 & 業界図鑑 -->
     <div class="side-panel">
         <h2>💡 コンパスの特長</h2>
         <ul>
@@ -218,6 +328,52 @@
         </ul>
         <div class="tip-box">
             📌 <strong>Point:</strong><br>抽象的な質問よりも「具体的にどんな悩みを抱えているか」を入力すると精度が上がります！
+        </div>
+
+        <!-- 追加: 業界図鑑セクション -->
+        <div class="guide-section">
+            <h3>🔍 気になる業界図鑑</h3>
+            <p class="guide-desc">業界をクリックして概要をチェック</p>
+
+            <details class="industry-item">
+                <summary>IT・通信業界</summary>
+                <div class="industry-content">
+                    <p>ソフトウェア開発、インフラ構築、Webサービスなどを提供する業界。論理的思考や継続的な学習意欲が求められます。</p>
+                    <button type="button" onclick="setInput('IT・通信業界')" class="select-btn">この業界について相談する</button>
+                </div>
+            </details>
+
+            <details class="industry-item">
+                <summary>コンサルティング業界</summary>
+                <div class="industry-content">
+                    <p>企業の経営課題を解決するプロフェッショナル集団。高い分析力やプレゼンテーション能力が身につきます。</p>
+                    <button type="button" onclick="setInput('コンサルティング業界')" class="select-btn">この業界について相談する</button>
+                </div>
+            </details>
+
+            <details class="industry-item">
+                <summary>メーカー（製造業）</summary>
+                <div class="industry-content">
+                    <p>自動車、食品、家電など「モノづくり」を行う業界。企画から生産、営業まで幅広い職種が存在します。</p>
+                    <button type="button" onclick="setInput('メーカー（製造業）')" class="select-btn">この業界について相談する</button>
+                </div>
+            </details>
+            
+            <details class="industry-item">
+                <summary>総合商社</summary>
+                <div class="industry-content">
+                    <p>幅広い分野でのトレーディングと事業投資を行う業界。グローバルな視野と高いコミュニケーション能力が求められます。</p>
+                    <button type="button" onclick="setInput('総合商社')" class="select-btn">この業界について相談する</button>
+                </div>
+            </details>
+            
+            <details class="industry-item">
+                <summary>金融業界</summary>
+                <div class="industry-content">
+                    <p>銀行、証券、保険などお金の流れを支える業界。正確性や責任感が重視され、経済の動向に敏感である必要があります。</p>
+                    <button type="button" onclick="setInput('金融業界')" class="select-btn">この業界について相談する</button>
+                </div>
+            </details>
         </div>
     </div>
 
@@ -281,6 +437,14 @@ function addLoading() {
 function removeLoading() {
     const el = document.getElementById("loadingIndicator");
     if (el) el.remove();
+}
+
+// 業界ガイドから入力欄にテキストをセットする関数
+function setInput(industryName) {
+    input.value = industryName + "について相談したいです。";
+    input.focus();
+    // オプション: 自動的に送信まで行う場合は以下のコメントアウトを外す
+    // form.dispatchEvent(new Event("submit"));
 }
 
 // Enterで送信 (Shift+Enterで改行)
